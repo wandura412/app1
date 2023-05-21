@@ -1,0 +1,58 @@
+import streamlit as st
+import pandas as pd
+import numpy as np
+from millify import millify
+
+upload_file = st.file_uploader('Upload a file containing data', type='csv')
+
+if upload_file is not None:
+    # Read the file to a dataframe using pandas
+    df = pd.read_csv(upload_file)
+    column_names=  ["Unique","Price",'Date',"Postcode",'Property_Type','Old_New','Duration','PAON','SAON','Street','Locality','Town_City','District','County','PPD','RecordStatus']
+    df.columns = column_names
+    df['Date'] = pd.to_datetime(df['Date'])
+    df['Adress'] = df['PAON'].fillna('') +'  ' + df['Street'].fillna('') + '  ' + df['Locality'].fillna('') + '  ' + df['Town_City'].fillna('')
+    df['Unique_House'] = df['PAON'].astype(str) + df['Postcode'].astype(str) 
+
+    #Inputs 
+    PC = st.text_input("Postcode")
+    adress_list = list(set(df[df['Postcode']==PC]['Adress']))
+    option = st.selectbox(
+    'Please select an address',(adress_list))
+
+    #Filtering Details
+    st.header('Details')
+    
+    target_price_value = []
+    target_date_value = []
+    target_prop_value = [] 
+    
+    #Filtering Price
+    variable_index = list(df['Adress'].index[df["Adress"] == option])
+    for i in variable_index:
+        target_price_value.append(df.iloc[variable_index[i], 1])      
+        #Filtering Date
+        target_date_value.append(df.iloc[variable_index[i], 2])
+        target_date_value = pd.to_datetime(target_date_value)
+        target_date_value = target_date_value.strftime("%dth %b %Y")
+        col1, col2, col3 = st.columns(3)
+        col2.metric("Price",millify(target_price_value[i]))
+        col1.metric("Date of transaction", target_date_value[i])
+        #Filtering House type
+        target_prop_value.append(df.iloc[variable_index[i], 4])
+        if target_prop_value[i] == 'T':
+        # #st.write('Property type  = Terraced')
+           col3.metric("Property Type", "Terraced") 
+        elif target_prop_value[i] == 'S':
+        # #st.write('Property type  = Semi-Detached')
+             col3.metric("Property Type", "Semi-Detached")
+        elif target_prop_value[i] == 'D':
+        # #st.write('Property type  = Detached')
+             col3.metric("Property Type", "Detached")
+        elif target_prop_value[i] == 'F':
+        # #st.write('Property type  = Flat/Maisonette')
+             col3.metric("Property Type", "Flat/Maisonette")
+        else:
+        # #st.write('Property type  = Other')
+             col3.metric("Property Type", "Other")
+        i=i+1 
